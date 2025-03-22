@@ -1,6 +1,5 @@
 #include "collatzcalculator.h"
 #include "qdebug.h"
-#include <mutex>
 #include <thread>
 #include <chrono>
 
@@ -13,13 +12,13 @@ void CollatzCalculator::start(tNumType value, int threadNumber)
     qDebug() << "Start calculation(" << value<< "," << threadNumber << ")\n";
     try{
         setRunningState(true);
-
         std::shared_ptr<tResult> resPtr = std::make_shared<tResult>(value);
-        emit calculationStarted(resPtr);
-
         startParCalulation(value, threadNumber, resPtr);
-        setRunningState(false);
-        emit calculationFinished();
+        if(isRunning())
+        {
+            setRunningState(false);
+            emit calculationFinished(resPtr);
+        }
         emit finished();
 
     }catch(std::exception& ex)
@@ -33,27 +32,22 @@ void CollatzCalculator::start(tNumType value, int threadNumber)
 void CollatzCalculator::stop()
 {
     qDebug() << "Stop calculation\n";
-
     setRunningState(false);
-    emit finished();
 }
 
 void CollatzCalculator::setRunningState(bool state)
 {
-    std::unique_lock lock(mMux);
-    mIsRunning = state;
+    mIsRunning.store(state);
 }
 
 bool CollatzCalculator::isRunning()
 {
-    std::shared_lock lock(mMux);
-    return mIsRunning;
+    return mIsRunning.load();
 }
-
 
 void CollatzCalculator::startParCalulation(tNumType value, int threadNum, std::shared_ptr<tResult> resPtr)
 {
-    qDebug() << "CollatzCalculator::runThreads(" << value << "," << threadNum <<")";
+    qDebug() << "CollatzCalculator::startParCalulation(" << value << "," << threadNum <<")";
     auto start = std::chrono::high_resolution_clock::now();
 
     tResult& res = *resPtr;
@@ -88,7 +82,7 @@ void CollatzCalculator::startParCalulation(tNumType value, int threadNum, std::s
 
     auto end = std::chrono::high_resolution_clock::now();
     res.timeDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    qDebug() << "Time for variant:" << res.timeDuration << "ms";
+    qDebug() << "Execution time:" << res.timeDuration << "ms";
     qDebug() << "Result: val " << res.max->value << ",len:" << res.max->chainLen;
 }
 
@@ -97,11 +91,14 @@ void CollatzCalculator::startCalcPerThread( std::shared_ptr<tResult> resPtr, tNu
     tResult& res = *resPtr;
     for (tNumType j = startIdx; j < endIdx; j++)
     {
-        //if( !isRunning() ) return;
+        if(!isRunning())
+        {
+            return;
+        }
         tNumType chainLen = calculateChain(res.data, size, j+1);
         res.data[j].value.store(j + 1);
         res.data[j].chainLen.store(chainLen);
-        if (max->chainLen < res.data[j].chainLen)
+        if (max->chainLen.load() < res.data[j].chainLen.load())
         {
             max = &res.data[j];
         }
@@ -111,6 +108,7 @@ void CollatzCalculator::startCalcPerThread( std::shared_ptr<tResult> resPtr, tNu
 tNumType CollatzCalculator::calculateChain(std::vector<tNode>& v, const tNumType& size, tNumType n)
 {
     tNumType res = 1;
+
     while (n != 1)
     {
         if (n < size && v[n - 1].chainLen != 0)

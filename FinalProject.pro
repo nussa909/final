@@ -11,14 +11,12 @@ CONFIG += c++17
 SOURCES += \
     collatzcalculator.cpp \
     main.cpp\
-    mainwindow.cpp \
-    textoutput.cpp
+    mainwindow.cpp
 
 HEADERS += \
     collatzcalculator.h \
     common.h \
-    mainwindow.h \
-    textoutput.h
+    mainwindow.h
 
 FORMS += \
     mainwindow.ui

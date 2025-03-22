@@ -110,6 +110,11 @@
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QTextEdit" name="textEdit">
+          <property name="font">
+           <font>
+            <pointsize>16</pointsize>
+           </font>
+          </property>
           <property name="focusPolicy">
            <enum>Qt::FocusPolicy::WheelFocus</enum>
           </property>
@@ -125,13 +130,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item>
-       <widget class="QLabel" name="labelResult">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">

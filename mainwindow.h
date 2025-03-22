@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include "common.h"
 #include <QThread>
-#include "textoutput.h"
 #include "collatzcalculator.h"
 
 QT_BEGIN_NAMESPACE
@@ -25,15 +24,12 @@ public:
     tNumType getInputValue() const;
 
 signals:
-    void requestNextFragment();
+
     void startCalled(tNumType value, int threadNumber);
     void stopCalled();
 
 public slots:
-    void calculationFinished();
-
-    void textEditUpdated(QTextDocument* textDoc);
-    void labelResultUpdated(QString text);
+    void calculationFinished(std::shared_ptr<tResult> res);
 
 private slots:
     void startPressed();
@@ -43,10 +39,8 @@ private:
     void setupButtons(bool isRunning);
     void setupSlider();
 
-    QThread mTOThread;
     QThread mCCThread;
     Ui::MainWindow* mUiPtr;
-    TextEditUpdate mTextOut;
     CollatzCalculator mCalcCol;
 };
 #endif // MAINWINDOW_H

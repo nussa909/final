@@ -1,18 +1,16 @@
 #include "mainwindow.h"
-#include <QTextDocumentFragment>
-#include "textoutput.h"
 #include "ui_mainwindow.h"
+#include <sstream>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , mTOThread()
     , mCCThread()
     , mUiPtr(new Ui::MainWindow)
-    , mTextOut()
     , mCalcCol()
 {
     mUiPtr->setupUi(this);
 
+    setWindowTitle("Collatz Conjecture calculation");
     setupButtons(true);
     setupSlider();
 
@@ -20,31 +18,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(mUiPtr->buttonStop,  &QPushButton::clicked, this, &MainWindow::stopPressed);
 
     connect(this, &MainWindow::startCalled, &mCalcCol, &CollatzCalculator::start );
-    connect(this, &MainWindow::startCalled, &mTextOut, &TextEditUpdate::start );
 
-    connect(this, &MainWindow::stopCalled, &mCalcCol, &CollatzCalculator::stop );
-    connect(this, &MainWindow::stopCalled, &mTextOut, &TextEditUpdate::stop );
-
-    connect(&mTextOut, &TextEditUpdate::finished, &mTOThread, &QThread::quit);
     connect(&mCalcCol, &CollatzCalculator::finished, &mCCThread, &QThread::quit);
 
-    connect(&mTextOut, &TextEditUpdate::finished, this, &MainWindow::calculationFinished);
-    connect(&mCalcCol, &CollatzCalculator::finished, this, &MainWindow::calculationFinished);
+    connect(&mCalcCol, &CollatzCalculator::calculationFinished, this, &MainWindow::calculationFinished );
 
-    connect(&mCalcCol, &CollatzCalculator::calculationStarted, &mTextOut, &TextEditUpdate::calculationStarted );
-    connect(&mCalcCol, &CollatzCalculator::calculationFinished, &mTextOut, &TextEditUpdate::calculationFinished );
-
-    connect(&mTextOut, &TextEditUpdate::textEditFragmentUpdate, this, &MainWindow::textEditUpdated );
-    connect(&mTextOut, &TextEditUpdate::textLabelUpdate, this, &MainWindow::labelResultUpdated );
-    connect(this, &MainWindow::requestNextFragment, &mTextOut, &TextEditUpdate::processNextFragment);
-
-    mTextOut.moveToThread(&mTOThread);
     mCalcCol.moveToThread(&mCCThread);
 }
 
 MainWindow::~MainWindow()
 {
-    mTOThread.quit();
     mCCThread.quit();
     delete mUiPtr;
 }
@@ -65,10 +48,8 @@ void MainWindow::startPressed()
     setupButtons(false);
 
     mUiPtr->textEdit->clear();
-    mUiPtr->labelResult->clear();
 
     mCCThread.start();
-    mTOThread.start();
     emit startCalled( getInputValue(), getThreadNumber());
 }
 
@@ -76,7 +57,7 @@ void MainWindow::stopPressed()
 {
     qDebug() << "StopPressed\n";
     setupButtons(true);
-    emit stopCalled();
+    mCalcCol.stop();
 }
 
 void MainWindow::setupButtons(bool isRunning)
@@ -95,31 +76,15 @@ void MainWindow::setupSlider()
     mUiPtr->horizontalSlider->setSliderPosition(1);
 }
 
-void MainWindow::calculationFinished()
+void MainWindow::calculationFinished(std::shared_ptr<tResult> res)
 {
     qDebug() << "MainWindow::calculationFinished";
-    if(!mCalcCol.isRunning() && !mTextOut.isRunning())
+    if(res)
     {
-        qDebug() << "MainWindow::calculationFinished: both not running";
+        std::stringstream ss;
+        ss << "Value " << res->max->value.load() << " has the longest chain: " << res->max->chainLen.load()<< ".\nExecution time:" << res->timeDuration<<"ms";
+        mUiPtr->textEdit->setText(QString(ss.str().data()));
         setupButtons(true);
     }
 }
 
-void MainWindow::textEditUpdated(QTextDocument* textDoc)
-{
-    qDebug() << "MainWindow::textEditUpdated";
-
-    if(textDoc)
-    {
-        QTextCursor cursor(mUiPtr->textEdit->textCursor());
-        QTextDocumentFragment fragment(textDoc);
-        cursor.insertFragment(fragment);
-        cursor.movePosition(QTextCursor::End);
-        emit requestNextFragment();
-    }
-}
-
-void MainWindow::labelResultUpdated(QString text)
-{
-    mUiPtr->labelResult->setText(text);
-}

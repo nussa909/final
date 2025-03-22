@@ -3,9 +3,6 @@
 
 #include <QObject>
 #include "common.h"
-#include <shared_mutex>
-
-
 
 class CollatzCalculator : public QObject
 {
@@ -14,11 +11,11 @@ public:
     explicit CollatzCalculator(QObject *parent = nullptr);
 
     bool isRunning();
+
 signals:
     void finished();
     void runningStateChanged(bool state);
-    void calculationStarted(std::shared_ptr<tResult> res);
-    void calculationFinished();
+    void calculationFinished(std::shared_ptr<tResult> res);
 
 public slots:
     void start(tNumType value, int threadNumber);
@@ -30,8 +27,7 @@ private:
     void startCalcPerThread( std::shared_ptr<tResult> resPtr, tNumType startIdx, tNumType endIdx, tNumType size, tNode*& max);
     tNumType calculateChain(std::vector<tNode>& res, const tNumType& size, tNumType n);
 
-    std::shared_mutex mMux;
-    bool mIsRunning{false};
+    std::atomic<bool> mIsRunning{false};
 };
 
 #endif // COLLATZCALCULATOR_H
