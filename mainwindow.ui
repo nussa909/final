@@ -112,11 +112,24 @@
          <widget class="QTextEdit" name="textEdit">
           <property name="font">
            <font>
-            <pointsize>16</pointsize>
+            <family>Terminal</family>
+            <pointsize>14</pointsize>
+            <italic>false</italic>
+            <bold>false</bold>
+            <kerning>true</kerning>
            </font>
           </property>
+          <property name="mouseTracking">
+           <bool>false</bool>
+          </property>
           <property name="focusPolicy">
-           <enum>Qt::FocusPolicy::WheelFocus</enum>
+           <enum>Qt::FocusPolicy::NoFocus</enum>
+          </property>
+          <property name="acceptDrops">
+           <bool>false</bool>
+          </property>
+          <property name="autoFillBackground">
+           <bool>false</bool>
           </property>
           <property name="undoRedoEnabled">
            <bool>false</bool>
@@ -125,7 +138,10 @@
            <bool>true</bool>
           </property>
           <property name="overwriteMode">
-           <bool>true</bool>
+           <bool>false</bool>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::NoTextInteraction</set>
           </property>
          </widget>
         </item>

@@ -29,7 +29,8 @@ signals:
     void stopCalled();
 
 public slots:
-    void calculationFinished(std::shared_ptr<tResult> res);
+    void calculationSuccess(std::shared_ptr<tResult> res);
+    void calculationFailed(QString msg);
 
 private slots:
     void startPressed();

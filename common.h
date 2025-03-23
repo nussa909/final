@@ -12,18 +12,15 @@ struct tNode
 {
     std::atomic<tNumType> value{0};
     std::atomic<tNumType> chainLen{0};
-    std::atomic<bool> isFailed{false};
 
     tNode()
         : value(0)
         , chainLen(0)
-        , isFailed(false)
     {}
 
-    tNode(tNumType& v, tNumType& c, bool b)
+    tNode(tNumType& v, tNumType& c)
         : value(v)
         , chainLen(c)
-        , isFailed(b)
     {}
 
     tNode(const tNode& rhs)
@@ -56,6 +53,7 @@ struct tResult
 
     std::vector<tNode> data;
     tNode* max{nullptr};
+    std::vector<tNumType> errorList;
     int timeDuration; // ms
 };
 

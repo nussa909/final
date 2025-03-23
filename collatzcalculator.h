@@ -14,8 +14,8 @@ public:
 
 signals:
     void finished();
-    void runningStateChanged(bool state);
-    void calculationFinished(std::shared_ptr<tResult> res);
+    void calculationSuccess(std::shared_ptr<tResult> res);
+    void calculationFailed(QString msg);
 
 public slots:
     void start(tNumType value, int threadNumber);
@@ -24,7 +24,7 @@ public slots:
 private:
     void setRunningState(bool state);
     void startParCalulation(tNumType value, int threadNum, std::shared_ptr<tResult> resPtr);
-    void startCalcPerThread( std::shared_ptr<tResult> resPtr, tNumType startIdx, tNumType endIdx, tNumType size, tNode*& max);
+    void startCalcPerThread( std::shared_ptr<tResult> resPtr, tNumType startIdx, tNumType endIdx, tNumType size, tNode*& max, std::vector<tNumType>& errors);
     tNumType calculateChain(std::vector<tNode>& res, const tNumType& size, tNumType n);
 
     std::atomic<bool> mIsRunning{false};

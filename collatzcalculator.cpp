@@ -17,7 +17,7 @@ void CollatzCalculator::start(tNumType value, int threadNumber)
         if(isRunning())
         {
             setRunningState(false);
-            emit calculationFinished(resPtr);
+            emit calculationSuccess(resPtr);
         }
         emit finished();
 
@@ -25,6 +25,7 @@ void CollatzCalculator::start(tNumType value, int threadNumber)
     {
         qDebug() << ex.what();
         setRunningState(false);
+        emit calculationFailed(ex.what());
         emit finished();
     }
 }
@@ -59,6 +60,7 @@ void CollatzCalculator::startParCalulation(tNumType value, int threadNum, std::s
     std::vector<std::thread> threads;
     threads.reserve(threadNum);
     std::vector<tNode*> maxValues(threadNum, nullptr);
+    std::vector<std::vector<tNumType>> errorList(threadNum);
 
     const tNumType size = res.data.size();
     const tNumType interval = size / threadNum;
@@ -67,7 +69,15 @@ void CollatzCalculator::startParCalulation(tNumType value, int threadNum, std::s
         startIdx = tIdx * interval;
         endIdx = tIdx * interval + interval;
         maxValues[tIdx] = &res.data[startIdx];
-        threads.emplace_back(std::thread(&CollatzCalculator::startCalcPerThread, this, resPtr, startIdx, endIdx, size, std::ref(maxValues[tIdx]) ));
+        errorList[tIdx].reserve(25);
+        threads.emplace_back(std::thread(&CollatzCalculator::startCalcPerThread,
+                                         this,
+                                         resPtr,
+                                         startIdx,
+                                         endIdx,
+                                         size,
+                                         std::ref(maxValues[tIdx]),
+                                         std::ref(errorList[tIdx])));
     }
 
     for (auto& t : threads)
@@ -80,13 +90,27 @@ void CollatzCalculator::startParCalulation(tNumType value, int threadNum, std::s
         return (left->chainLen.load() < right->chainLen.load());
     });
 
+    int errorsCount = 0;
+    std::for_each(errorList.begin(), errorList.end(),[&errorsCount](const std::vector<tNumType>& v){
+        errorsCount += v.size();
+    });
+    if(errorsCount > 0)
+    {
+        res.errorList.reserve(errorsCount);
+        for(auto& errorsVec : errorList)
+        {
+            std::copy(errorsVec.begin(),errorsVec.end(), res.errorList.end());
+        }
+    }
+
     auto end = std::chrono::high_resolution_clock::now();
     res.timeDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     qDebug() << "Execution time:" << res.timeDuration << "ms";
     qDebug() << "Result: val " << res.max->value << ",len:" << res.max->chainLen;
+    qDebug() << "Error count:" << errorsCount;
 }
 
-void CollatzCalculator::startCalcPerThread( std::shared_ptr<tResult> resPtr, tNumType startIdx, tNumType endIdx, tNumType size, tNode*& max)
+void CollatzCalculator::startCalcPerThread( std::shared_ptr<tResult> resPtr, tNumType startIdx, tNumType endIdx, tNumType size, tNode*& max, std::vector<tNumType>& errors)
 {
     tResult& res = *resPtr;
     for (tNumType j = startIdx; j < endIdx; j++)
@@ -101,6 +125,10 @@ void CollatzCalculator::startCalcPerThread( std::shared_ptr<tResult> resPtr, tNu
         if (max->chainLen.load() < res.data[j].chainLen.load())
         {
             max = &res.data[j];
+        }
+        if(chainLen == 0)
+        {
+            errors.push_back(j+1);
         }
     }
 }
@@ -124,7 +152,6 @@ tNumType CollatzCalculator::calculateChain(std::vector<tNode>& v, const tNumType
         {
             if(n > cValue_MaxLimit )
             {
-                v[n-1].isFailed.store(true);
                 res = 0;
                 break;
             }
